@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <title>MusicXML 播放器 — 友善的指揮家</title>
+  <rect width="108" height="108" fill="#FFE6A7"/>
+  <g transform="translate(54 54) scale(.94) translate(-54 -54)" stroke="#243047" stroke-linecap="round" stroke-linejoin="round">
+    <path fill="#28B6AE" stroke-width="3" d="M43 57L35 64L29 55L25 59L32 72Q34 75 38 73L42 69L39 83H69L67 63L74 57L80 43L75 41L68 52L61 56Z"/>
+    <path fill="white" stroke-width="2.5" d="M47 54V60L54 76L62 59L60 53Z"/>
+    <path fill="#FFC794" stroke-width="2.5" d="M48 50V58Q54 63 60 58V50Z"/>
+    <path fill="#138F94" stroke-width="2" d="M46 57L42 63L49 65L46 69L54 79L62 69L59 65L66 62L62 57L54 76Z"/>
+    <path fill="none" stroke-width="2.8" d="M76 43L70 25"/>
+    <path fill="#FFC794" stroke-width="2.5" d="M29 58Q25 56 25 52L24 47Q24 45 26 46L29 51L28 44Q28 42 30 43L33 50L34 47Q36 46 36 49L35 55L32 60Z"/>
+    <path fill="#FFC794" stroke-width="2.5" d="M74 43L74 38Q74 35 77 36L79 38Q83 37 83 41Q83 45 79 47Z"/>
+    <path fill="#FFC794" stroke-width="2.8" d="M41 36Q39 33 38 37Q37 42 41 43Q42 55 54 56Q66 55 67 43Q71 42 70 37Q69 34 66 36L65 30H43Z"/>
+    <path fill="#243047" stroke-width="2.5" d="M41 38Q36 27 46 25Q53 20 62 25Q70 28 66 38L62 32Q51 36 46 30Z"/>
+    <path fill="none" stroke-width="2.2" d="M46 40V42M61 40V42M49 47Q54 53 59 47"/>
+    <g fill="#F38A7D" stroke="none"><ellipse cx="44.3" cy="45" rx="2.3" ry="1.5"/><ellipse cx="63.3" cy="45" rx="2.3" ry="1.5"/></g>
+    <path fill="#F57569" stroke-width="2" d="M54 63L49 60V66Z M54 63L59 60V66Z"/>
+    <g fill="#243047" stroke="none"><path d="M52.5 61.5H55.5V64.5H52.5Z"/><circle cx="54.4" cy="79" r="1.4"/></g>
+  </g>
+</svg>

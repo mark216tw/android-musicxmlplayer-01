@@ -1,0 +1,10 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+node_modules/
+.cxx/
+**/.cxx/
+DISCUSSION_SUMMARY.md

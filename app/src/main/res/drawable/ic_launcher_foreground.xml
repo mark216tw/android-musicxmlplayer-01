@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- All visible strokes remain within the centered 59.4 dp core. -->
+    <group android:translateX="54" android:translateY="54" android:scaleX="0.94" android:scaleY="0.94">
+        <group android:translateX="-54" android:translateY="-54">
+            <!-- Raised jacket sleeves and torso. -->
+            <path android:fillColor="#28B6AE" android:strokeColor="#243047" android:strokeWidth="3" android:strokeLineJoin="round" android:strokeLineCap="round"
+                android:pathData="M43,57L35,64L29,55L25,59L32,72Q34,75 38,73L42,69L39,83H69L67,63L74,57L80,43L75,41L68,52L61,56Z" />
+            <!-- Shirt, neck and lapels. -->
+            <path android:fillColor="#FFFFFF" android:strokeColor="#243047" android:strokeWidth="2.5" android:strokeLineJoin="round"
+                android:pathData="M47,54V60L54,76L62,59L60,53Z" />
+            <path android:fillColor="#FFC794" android:strokeColor="#243047" android:strokeWidth="2.5" android:strokeLineJoin="round"
+                android:pathData="M48,50V58Q54,63 60,58V50Z" />
+            <path android:fillColor="#138F94" android:strokeColor="#243047" android:strokeWidth="2" android:strokeLineJoin="round"
+                android:pathData="M46,57L42,63L49,65L46,69L54,79L62,69L59,65L66,62L62,57L54,76Z" />
+            <!-- Baton sits behind the raised hand. -->
+            <path android:fillColor="#00000000" android:strokeColor="#243047" android:strokeWidth="2.8" android:strokeLineCap="round"
+                android:pathData="M76,43L70,25" />
+            <!-- Open left hand and baton-holding right hand. -->
+            <path android:fillColor="#FFC794" android:strokeColor="#243047" android:strokeWidth="2.5" android:strokeLineJoin="round" android:strokeLineCap="round"
+                android:pathData="M29,58Q25,56 25,52L24,47Q24,45 26,46L29,51L28,44Q28,42 30,43L33,50L34,47Q36,46 36,49L35,55L32,60Z" />
+            <path android:fillColor="#FFC794" android:strokeColor="#243047" android:strokeWidth="2.5" android:strokeLineJoin="round"
+                android:pathData="M74,43L74,38Q74,35 77,36L79,38Q83,37 83,41Q83,45 79,47Z" />
+            <!-- Friendly face and sweeping hair. -->
+            <path android:fillColor="#FFC794" android:strokeColor="#243047" android:strokeWidth="2.8"
+                android:pathData="M41,36Q39,33 38,37Q37,42 41,43Q42,55 54,56Q66,55 67,43Q71,42 70,37Q69,34 66,36L65,30H43Z" />
+            <path android:fillColor="#243047" android:strokeColor="#243047" android:strokeWidth="2.5" android:strokeLineJoin="round"
+                android:pathData="M41,38Q36,27 46,25Q53,20 62,25Q70,28 66,38L62,32Q51,36 46,30Z" />
+            <path android:fillColor="#00000000" android:strokeColor="#243047" android:strokeWidth="2.2" android:strokeLineCap="round"
+                android:pathData="M46,40L46,42M61,40L61,42M49,47Q54,53 59,47" />
+            <path android:fillColor="#F38A7D" android:pathData="M42,45a2.3,1.5 0,1 0,4.6 0a2.3,1.5 0,1 0,-4.6 0M61,45a2.3,1.5 0,1 0,4.6 0a2.3,1.5 0,1 0,-4.6 0" />
+            <!-- Bow tie. -->
+            <path android:fillColor="#F57569" android:strokeColor="#243047" android:strokeWidth="2" android:strokeLineJoin="round"
+                android:pathData="M54,63L49,60V66Z M54,63L59,60V66Z" />
+            <path android:fillColor="#243047" android:pathData="M52.5,61.5H55.5V64.5H52.5Z M53,79a1.4,1.4 0,1 0,2.8 0a1.4,1.4 0,1 0,-2.8 0" />
+        </group>
+    </group>
+</vector>
