@@ -64,5 +64,6 @@ podman run --rm --mount "type=bind,source=$($PWD.Path),target=/work,readonly" mu
 - TinySoundFont：MIT。
 - Oboe：Apache-2.0。
 - GeneralUser GS：依其授權條款使用。
+- `Effects.cpp` 的殘響／合唱／限幅為本專案原創實作，未引入額外第三方元件或授權。
 
 第三方授權與音源授權文件會隨 App 資源提供；本 repository 的 MIT License 僅適用於本專案程式碼與文件，不取代第三方元件授權。

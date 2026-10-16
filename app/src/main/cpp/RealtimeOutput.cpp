@@ -381,7 +381,7 @@ Java_com_musicxml_player_NativeRealtimePlayer_create(JNIEnv* env, jobject, jstri
         const auto path = env->GetStringUTFChars(bank, nullptr);
         if (!path) throw std::runtime_error("Unable to read SoundFont path");
         std::unique_ptr<musicxml::Synth> synth;
-        try { synth = musicxml::loadSoundFont(path); } catch (...) { env->ReleaseStringUTFChars(bank, path); throw; }
+        try { synth = musicxml::loadSoundFontWithEffects(path); } catch (...) { env->ReleaseStringUTFChars(bank, path); throw; }
         env->ReleaseStringUTFChars(bank, path);
         auto result = std::make_shared<musicxml::RealtimeOutput>(std::move(synth), std::move(notes), std::move(controls), duration, basePreset, baseBank);
         result->open();

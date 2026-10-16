@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(musicxml_sampler LANGUAGES CXX)
 find_package(oboe REQUIRED CONFIG)
-add_library(sampler SHARED sampler.cpp SoundFont.cpp RealtimeCore.cpp RealtimeOutput.cpp OfflineWave.cpp)
+add_library(sampler SHARED sampler.cpp SoundFont.cpp Effects.cpp RealtimeCore.cpp RealtimeOutput.cpp OfflineWave.cpp)
 target_link_libraries(sampler PRIVATE oboe::oboe)
 target_compile_features(sampler PRIVATE cxx_std_17)
+# Smaller effect blocks make TinySoundFont's LFO/low-pass updates smoother at a modest CPU cost.
+target_compile_definitions(sampler PRIVATE TSF_RENDER_EFFECTSAMPLEBLOCK=32)
 target_include_directories(sampler PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/generated/audio")
 target_compile_options(sampler PRIVATE -O2 -Wall -Wextra)
 target_link_options(sampler PRIVATE "-Wl,-z,max-page-size=16384")

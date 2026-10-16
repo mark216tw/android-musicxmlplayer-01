@@ -26,6 +26,7 @@ Android 8.0 以上的離線 MusicXML 播放器。提供首頁、所有曲目、�
 - 支援 arpeggiate／non-arpeggiate、slur／legato、階梯式 glissando／slide，以及 grace note（含 steal-time／make-time）、trill、mordent、turn、tremolo、fermata、breath mark、staccato、tenuto、accent、marcato；grace、trill 與 wavy-line 可跨小節延續。
 - Grace note 與力度依 MusicXML 的 voice／staff 隔離；跨小節與反覆展開後仍連接實際演奏的同 voice／staff 主音或前音，不會干擾其他譜表。
 - 即時採樣播放：APK 內建 **GeneralUser GS 2.0.3 SoundFont**，使用 **TinySoundFont＋Oboe C++ 引擎**直接輸出音訊，不預先產生整首 WAV，也不依賴手機系統 MIDI 音色。
+- 共用效果鏈：TinySoundFont 不支援 SoundFont 的殘響／合唱送量，原生層因此在取樣合成後加上輕量殘響、合唱與限幅，補回取樣音源原有的空間感並穩定音量；即時播放與 WAV 匯出使用相同效果設定。
 - 常見 GM 音色：鋼琴、弦樂、吉他、貝斯、木管、銅管、薩克斯風、鼓組等；可替換旋律樂器音色。
 - 現正播放頁提供上一首、播放／暫停、下一首、隨機播放，以及關閉／清單／單曲三段循環；播放速度提供 50%、75%、100%、125%、150% 選項，保持音高。
 - 播放器可選擇原譜、流行、抒情、自然、浪漫五種演奏風格；速度與風格為全 App 共用，即時播放與 WAV 匯出共用相同的演奏事件計畫。
@@ -110,7 +111,7 @@ adb install -r "app/build/outputs/apk/debug/app-debug.apk"
 
 - JVM 測試涵蓋精確時間量化、和弦／多聲部、tie 與 instrument 身分、反覆及導航、完整速度語意、swing、跨小節控制與裝飾奏法、各類踏板、MXL、控制事件及 XML 安全處理。
 - Robolectric 測試在 Android API 29／36 模擬框架驗證匯入停留音譜庫、自動播放、切頁／背景／Activity 銷毀時持續播放、通知控制、音量步進、主題保存、系統列明暗，以及即時混音／速度／音色操作不重新準備或定位播放器；硬體音訊輸出使用測試替身。
-- 原生 C++ 測試以實際 SoundFont 驗證音符精確事件邊界、同音高多聲部、CC11／CC64／CC66／CC67 狀態與 identity release、速度與音高、長音定位、實際採樣、並行 WAV 匯出及回呼中不配置記憶體，另測試 100000 筆跨執行緒控制。
+- 原生 C++ 測試以實際 SoundFont 驗證音符精確事件邊界、同音高多聲部、CC11／CC64／CC66／CC67 狀態與 identity release、速度與音高、長音定位、實際採樣、效果鏈的限幅／靜音清除／區塊獨立性、並行 WAV 匯出及回呼中不配置記憶體，另測試 100000 筆跨執行緒控制。
 - 此開發環境沒有連線的 Android 裝置或 AVD；實機的音訊輸出與觸控操作仍需裝置驗收。
 
 目前驗證：108 項 JVM／Robolectric 測試（1 項因未設定外部 fixture 而略過、0 項失敗）；Podman 原生 C++ suite 全數通過；arm64-v8a、armeabi-v7a、x86_64 三種 Android ABI 與 debug APK 編譯通過；Android Lint 為 0 errors、11 warnings。APK 已確認不包含已移除的 OSMD JavaScript、HTML、MIDI 匯出器或相關資源。

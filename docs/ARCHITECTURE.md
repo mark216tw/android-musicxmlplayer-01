@@ -15,6 +15,9 @@ RealtimePlayer / SampleRenderer
 RealtimeOutput / RealtimeCore
     │ Oboe 串流、無鎖控制、事件排程
     ▼
+Effects（殘響／合唱／限幅，Synth 裝飾器）
+    │ tsf_render_float
+    ▼
 TinySoundFont + GeneralUser GS
 ```
 
@@ -64,5 +67,6 @@ TinySoundFont + GeneralUser GS
 | `RealtimePlayer.kt` | Kotlin/JNI 即時播放器 |
 | `SampleRenderer.kt` | WAV 匯出 |
 | `RealtimeCore.*` | 原生事件排程與控制 |
+| `Effects.cpp` | 殘響／合唱／限幅效果鏈（`Synth` 裝飾器） |
 | `RealtimeOutput.cpp` | Oboe stream 與重連 |
 | `MainActivity.kt` | UI 與使用者操作 |

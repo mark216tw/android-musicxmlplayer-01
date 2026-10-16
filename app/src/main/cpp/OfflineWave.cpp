@@ -9,7 +9,7 @@ static void word(FILE* file, uint32_t value, int bytes) {
 void writeWave(const char* bank, const char* path, std::vector<LiveNote> notes, std::vector<LiveControl> controls, double duration,
                 const Mix& mix,
                std::array<int, CHANNELS> basePrograms, std::array<int, CHANNELS> baseBanks) {
-    RealtimeCore core(loadSoundFont(bank), std::move(notes), duration, std::move(controls), basePrograms, baseBanks);
+    RealtimeCore core(loadSoundFontWithEffects(bank), std::move(notes), duration, std::move(controls), basePrograms, baseBanks);
     core.sampleRate(44100);
     Command levels; levels.operation = Operation::Mix; levels.mix = mix;
     core.command(levels); core.command({Operation::Play});

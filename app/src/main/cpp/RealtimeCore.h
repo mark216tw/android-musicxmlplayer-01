@@ -29,6 +29,8 @@ public:
     virtual void render(float* stereo, int frames) = 0;
 };
 std::unique_ptr<Synth> loadSoundFont(const char* path);
+// Wraps loadSoundFont with a reverb/chorus/limiter tail shared by playback and WAV export.
+std::unique_ptr<Synth> loadSoundFontWithEffects(const char* path);
 void writeWave(const char* bank, const char* output, std::vector<LiveNote> notes, std::vector<LiveControl> controls, double duration,
                  const Mix& mix,
                  std::array<int, CHANNELS> basePrograms = {}, std::array<int, CHANNELS> baseBanks = {});

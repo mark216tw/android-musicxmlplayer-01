@@ -11,8 +11,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 val skipNative = providers.gradleProperty("skipNative").orNull?.let { it.isBlank() || it.toBooleanStrictOrNull() == true } ?: false
-val appVersionCode = 11
-val appVersionName = "1.0.1-prerelease"
+val appVersionCode = 12
+val appVersionName = "1.0.2-prerelease"
 val buildInfoResources = layout.buildDirectory.dir("generated/build-info/res")
 val generateBuildInfo = tasks.register("generateBuildInfo") {
     outputs.dir(buildInfoResources)

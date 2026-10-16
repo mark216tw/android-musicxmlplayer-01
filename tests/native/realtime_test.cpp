@@ -251,6 +251,46 @@ void soundFontTests(const char* bank) {
     assert(std::abs(core.position() - 810) < 0.02);
     std::puts("PASS: WAV length includes resolved pedal duration and concurrent export does not interrupt live synth");
 }
+void effectsTests(const char* bank) {
+    auto synth = loadSoundFontWithEffects(bank);
+    synth->preset(0, 19, 0);
+    synth->volume(0, 1);
+    std::vector<float> audio(960);
+    synth->noteOn({0, 2000, 0, 60, 100, 0});
+    callback = true; synth->render(audio.data(), 960); callback = false;
+    float peak = 0.0f;
+    for (float sample : audio) peak = std::max(peak, std::fabs(sample));
+    assert(peak > 0.0f && peak <= 1.0001f);
+    synth->silence();
+    callback = true; synth->render(audio.data(), 960); callback = false;
+    assert(energy(audio) == 0.0);
+    std::puts("PASS: effects limiter bounds output and silence flushes reverb/chorus tails");
+
+    auto dry = loadSoundFont(bank);
+    auto wet = loadSoundFontWithEffects(bank);
+    for (Synth* voice : {dry.get(), wet.get()}) {
+        voice->preset(0, 19, 0); voice->volume(0, 1);
+        voice->noteOn({0, 60, 0, 60, 100, 0});
+    }
+    std::vector<float> dryAudio(960), wetAudio(960);
+    dry->render(dryAudio.data(), 960); wet->render(wetAudio.data(), 960);
+    dry->noteOff(0); wet->noteOff(0);
+    int blocks = 0;
+    do { dry->render(dryAudio.data(), 960); wet->render(wetAudio.data(), 960); ++blocks; }
+    while (blocks < 200 && energy(dryAudio) > 1e-4);
+    assert(blocks < 200 && energy(dryAudio) <= 1e-4);
+    assert(energy(wetAudio) > energy(dryAudio) * 2.0 + 1e-7);
+    std::puts("PASS: reverb/chorus ring on after the dry note has stopped");
+
+    auto whole = loadSoundFontWithEffects(bank);
+    auto split = loadSoundFontWithEffects(bank);
+    for (Synth* voice : {whole.get(), split.get()}) { voice->preset(0, 19, 0); voice->volume(0, 1); voice->noteOn({0, 500, 0, 60, 100, 0}); }
+    std::vector<float> wholeAudio(8192), splitAudio(8192);
+    whole->render(wholeAudio.data(), 4096);
+    for (int offset = 0; offset < 4096; offset += 512) split->render(splitAudio.data() + offset * 2, 512);
+    assert(wholeAudio == splitAudio);
+    std::puts("PASS: effect processing is independent of audio block size");
+}
 void clockAndQueueTests() {
     AudioClock clock; clock.record(0,0,1); clock.record(480,10,1.5); clock.record(960,500,1.5); clock.record(1440,20,1);
     assert(std::abs(clock.position(240,48000,0) - 5) < 0.001);
@@ -270,6 +310,6 @@ void clockAndQueueTests() {
     std::puts("PASS: hardware-frame clock across rate/seek boundaries and 100000 concurrent controls");
 }
 int main(int argc, char** argv) {
-    assert(argc == 2); scheduleTests(); clockAndQueueTests(); soundFontTests(argv[1]);
+    assert(argc == 2); scheduleTests(); clockAndQueueTests(); soundFontTests(argv[1]); effectsTests(argv[1]);
     std::puts("ALL REALTIME NATIVE TESTS PASSED");
 }

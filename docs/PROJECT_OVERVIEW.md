@@ -11,7 +11,7 @@
 - 匯入 `.musicxml`、`.xml`、`.mxl` 及 JSON 包裝的 MusicXML。
 - 支援多聲部、voice、staff、和弦、休止符、移調、tie、backup／forward、反覆與 D.C.／D.S. 導航。
 - 支援力度、速度標記、swing、ritardando／accelerando、grace note、trill、tremolo、glissando、articulation 與踏板控制。
-- 以 GeneralUser GS 2.0.3、TinySoundFont 與 Oboe 進行即時採樣播放。
+- 以 GeneralUser GS 2.0.3、TinySoundFont 與 Oboe 進行即時採樣播放，並在取樣合成後套用共用的殘響／合唱／限幅效果鏈。
 - 提供首頁、可查詢與排序的所有曲目、可拖曳排序的播放清單，以及各頁共用的迷你播放器。
 - 支援播放佇列、上一首／下一首、隨機播放、關閉／清單／單曲三段循環，以及程序重啟後的暫停恢復。
 - 支援停止、小節定位、音符卷軸定位及 50%、75%、100%、125%、150% 播放速度。
@@ -31,6 +31,12 @@
 - 解析器限制 tick、展開事件、tempo ramp、MXL entry 數量與檔名長度。
 - 原生採樣器預配置最多 256 個 voices。
 - 硬體音訊路由、藍牙延遲、鎖屏長時間播放與耗電仍應以實機驗證。
+
+## 名詞說明
+
+- **SoundFont**：一種開放的音源檔案格式（`.sf2`），封裝取樣 PCM 與每個 preset 的合成參數；本身既不是音色庫，也不是播放程式。
+- **GeneralUser GS 2.0.3**：本 App 內建、依 SoundFont 格式製作的實際音色庫（約 32 MB）。
+- **TinySoundFont**：讀取 SoundFont 並即時合成聲音的引擎。本專案在其後加上殘響／合唱／限幅，補回 TinySoundFont 尚未實作的 SoundFont 效果送量（Reverb／Chorus send）。
 
 ## 文件索引
 
