@@ -29,7 +29,7 @@ TinySoundFont + GeneralUser GS
 4. `Score` 保存 UI、音符卷軸與定位使用的 canonical 樂譜。
 5. `ScoreTimeline` 提供 note、bar、context 與 control 的索引查詢。
 
-解析階段同時套用 grace、trill、tremolo、glissando、swing、力度與踏板語意。
+解析階段同時套用 grace、trill、tremolo、glissando、swing、力度與踏板語意。為降低大型樂譜的峰值記憶體，`parse()` 直接在位元組層級掃描與剝除外部的 `DOCTYPE`（不解碼整份文件），內部 DTD／實體宣告則一律拒絕。
 
 ## 播放資料流
 
@@ -40,7 +40,7 @@ TinySoundFont + GeneralUser GS
 - pitch、velocity、program、bank、percussion。
 - control start／end、controller、from／to。
 
-原生層不解析 MusicXML，只處理已準備完成的音符與控制事件，因此音訊 callback 不需要配置記憶體、呼叫 JNI 或取得鎖。
+原生層不解析 MusicXML，只處理已準備完成的音符與控制事件，因此音訊 callback 不需要配置記憶體、呼叫 JNI 或取得鎖。播放器狀態以單一 `stateAll` JNI 呼叫一次回傳全部欄位，事件陣列也以單迴圈直接填入 `IntArray`，避免熱路徑上的中間配置。
 
 ## 控制策略
 

@@ -28,6 +28,7 @@ class PianoRoll(context: Context, val score: Score, dark: Boolean = Appearance.d
     private var touchY = 0f
     private var touchMoved = false
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val blackKeys = setOf(1, 3, 6, 8, 10)
     private val low = score.notes.minOfOrNull { it.pitch }?.minus(3)?.coerceAtLeast(0) ?: 48
     private val high = score.notes.maxOfOrNull { it.pitch }?.plus(3)?.coerceAtMost(127) ?: 72
     private val density get() = resources.displayMetrics.density
@@ -51,6 +52,13 @@ class PianoRoll(context: Context, val score: Score, dark: Boolean = Appearance.d
         invalidate()
     }
 
+    /** Advances only the playhead between full recomputations of the labels and context. */
+    fun updateTick(tick: Int) {
+        if (this.tick == tick) return
+        this.tick = tick
+        invalidate()
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val measuredWidth = MeasureSpec.getSize(widthMeasureSpec)
         val desiredHeight = dp(250).toInt()
@@ -70,7 +78,7 @@ class PianoRoll(context: Context, val score: Score, dark: Boolean = Appearance.d
         paint.textSize = dp(10); paint.textAlign = Paint.Align.LEFT; paint.isFakeBoldText = false; paint.alpha = 255
         for (pitch in low..high) {
             val y = gridTop + (high - pitch) * rowHeight
-            paint.color = if (pitch % 12 in listOf(1, 3, 6, 8, 10)) colors.grid else colors.surface
+            paint.color = if (pitch % 12 in blackKeys) colors.grid else colors.surface
             canvas.drawRect(left, y, width.toFloat(), y + rowHeight, paint)
             if (pitch % 12 == 0) {
                 paint.color = colors.muted

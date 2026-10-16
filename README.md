@@ -18,7 +18,7 @@ Android 8.0 以上的離線 MusicXML 播放器。提供首頁、所有曲目、�
 - 曲目庫：匯入 `.musicxml`、`.xml`、`.mxl`，以及含 `musicxml` 字串欄位的 JSON 包裝檔；可查詢，依最近播放、名稱、作曲者、加入日期或長度排序，並可改名與刪除。
 - 播放清單：新增、改名、刪除、批次加入／移除曲目，以及長按拖曳排序。
 - 播放佇列：上一首／下一首、隨機播放、關閉／清單／單曲三段循環，並可在程序重啟後以暫停狀態恢復曲目與進度。
-- 各主要頁面提供固定底部迷你播放器，點擊可進入現正播放頁。
+- 各主要頁面提供固定底部迷你播放器，點擊可進入現正播放頁；設定頁不顯示迷你播放器。
 - 匯入檔案保存在 App 私有空間；改名只更新音譜庫的顯示名稱。
 - MusicXML：多樂器、多聲部、和弦、休止符、延音線、backup／forward、移調、力度、速度變化、巢狀反覆、多重結尾、D.C.／D.S.／Fine／Coda。
 - 匯入時在裝飾音、反覆與結尾展開前檢查 tick、時長、結尾範圍、事件總數及 MXL 項目數／檔名長度，異常檔案會快速拒絕，不會無限制占用記憶體。
@@ -114,7 +114,7 @@ adb install -r "app/build/outputs/apk/debug/app-debug.apk"
 - 原生 C++ 測試以實際 SoundFont 驗證音符精確事件邊界、同音高多聲部、CC11／CC64／CC66／CC67 狀態與 identity release、速度與音高、長音定位、實際採樣、效果鏈的限幅／靜音清除／區塊獨立性、並行 WAV 匯出及回呼中不配置記憶體，另測試 100000 筆跨執行緒控制。
 - 此開發環境沒有連線的 Android 裝置或 AVD；實機的音訊輸出與觸控操作仍需裝置驗收。
 
-目前驗證：108 項 JVM／Robolectric 測試（1 項因未設定外部 fixture 而略過、0 項失敗）；Podman 原生 C++ suite 全數通過；arm64-v8a、armeabi-v7a、x86_64 三種 Android ABI 與 debug APK 編譯通過；Android Lint 為 0 errors、11 warnings。APK 已確認不包含已移除的 OSMD JavaScript、HTML、MIDI 匯出器或相關資源。
+目前驗證：145 項 JVM／Robolectric 測試（17 項略過、0 項失敗）；arm64-v8a、armeabi-v7a、x86_64 三種 Android ABI 與 debug APK 編譯通過；Android Lint 為 0 errors、12 warnings。APK 已確認不包含已移除的 OSMD JavaScript、HTML、MIDI 匯出器或相關資源。原生 C++ 執行期測試需在具備 g++ 或 Podman／Docker 的環境執行。
 
 原生測試可在具備 g++ 的 Linux 環境從根目錄執行 `sh tests/native/run.sh`，或使用 Podman／Docker：
 

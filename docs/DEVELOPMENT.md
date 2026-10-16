@@ -66,4 +66,6 @@ podman run --rm --mount "type=bind,source=$($PWD.Path),target=/work,readonly" mu
 - GeneralUser GS：依其授權條款使用。
 - `Effects.cpp` 的殘響／合唱／限幅為本專案原創實作，未引入額外第三方元件或授權。
 
+SoundFont（`.sf2`）以未壓縮方式封裝（`androidResources { noCompress += "sf2" }`）；其 16-bit PCM 幾乎不可壓縮，不壓縮可略過首次複製到私有空間時的解壓成本。
+
 第三方授權與音源授權文件會隨 App 資源提供；本 repository 的 MIT License 僅適用於本專案程式碼與文件，不取代第三方元件授權。

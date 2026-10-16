@@ -23,18 +23,45 @@ object SampleRenderer {
         val bank = SoundBank.ensure(context)
         val routing = AudioRouting(score)
         val notes = plan.notes.filter { enabled.getOrElse(it.part) { true } }
-        val starts = notes.map { it.startMillis }.toIntArray()
-        val ends = notes.map { it.endMillis }.toIntArray()
-        val controlStarts = plan.controls.map { it.startMillis }.toIntArray()
-        val controlEnds = plan.controls.map { it.endMillis }.toIntArray()
-        val notePrograms = notes.map { if (it.program >= 0) it.program else score.parts[it.part].program }.toIntArray()
-        val noteBanks = notes.map { if (it.bank >= 0) it.bank else score.parts[it.part].bank }.toIntArray()
+        val count = notes.size
+        val starts = IntArray(count)
+        val ends = IntArray(count)
+        val channels = IntArray(count)
+        val pitches = IntArray(count)
+        val velocities = IntArray(count)
+        val notePrograms = IntArray(count)
+        val noteBanks = IntArray(count)
+        val drums = IntArray(count)
+        for (index in 0 until count) {
+            val note = notes[index]
+            starts[index] = note.startMillis
+            ends[index] = note.endMillis
+            channels[index] = routing.noteChannel(note.source)
+            pitches[index] = note.pitch
+            velocities[index] = note.velocity
+            notePrograms[index] = if (note.program >= 0) note.program else score.parts[note.part].program
+            noteBanks[index] = if (note.bank >= 0) note.bank else score.parts[note.part].bank
+            drums[index] = if (note.percussion) 1 else 0
+        }
+        val controlCount = plan.controls.size
+        val controlStarts = IntArray(controlCount)
+        val controlEnds = IntArray(controlCount)
+        val controlParts = IntArray(controlCount)
+        val controllers = IntArray(controlCount)
+        val controlFrom = IntArray(controlCount)
+        val controlTo = IntArray(controlCount)
+        for (index in 0 until controlCount) {
+            val control = plan.controls[index]
+            controlStarts[index] = control.startMillis
+            controlEnds[index] = control.endMillis
+            controlParts[index] = control.source.part
+            controllers[index] = control.source.controller
+            controlFrom[index] = control.source.from
+            controlTo[index] = control.source.to
+        }
         val mix = routing.mix(enabled, volumes, programs, overrides)
-        render(bank.absolutePath, output.absolutePath, starts, ends,
-            notes.map { routing.noteChannel(it.source) }.toIntArray(), notes.map { it.pitch }.toIntArray(), notes.map { it.velocity }.toIntArray(),
+        render(bank.absolutePath, output.absolutePath, starts, ends, channels, pitches, velocities,
             notePrograms, noteBanks, mix.programs, routing.basePrograms, routing.baseBanks, mix.overrides,
-            notes.map { if (it.percussion) 1 else 0 }.toIntArray(), mix.volumes, controlStarts, controlEnds,
-            plan.controls.map { it.source.part }.toIntArray(), plan.controls.map { it.source.controller }.toIntArray(),
-            plan.controls.map { it.source.from }.toIntArray(), plan.controls.map { it.source.to }.toIntArray(), duration)
+            drums, mix.volumes, controlStarts, controlEnds, controlParts, controllers, controlFrom, controlTo, duration)
     }
 }

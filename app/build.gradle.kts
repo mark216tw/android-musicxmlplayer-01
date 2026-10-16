@@ -11,8 +11,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 val skipNative = providers.gradleProperty("skipNative").orNull?.let { it.isBlank() || it.toBooleanStrictOrNull() == true } ?: false
-val appVersionCode = 14
-val appVersionName = "1.0.4-prerelease"
+val appVersionCode = 12
+val appVersionName = "1.0.2-prerelease"
 val buildInfoResources = layout.buildDirectory.dir("generated/build-info/res")
 val generateBuildInfo = tasks.register("generateBuildInfo") {
     outputs.dir(buildInfoResources)
@@ -51,6 +51,9 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { prefab = true; buildConfig = true }
+    // The SoundFont is 16-bit PCM that barely compresses; store it raw so the first-run
+    // copy into app storage is a straight read instead of a 32 MB decompression.
+    androidResources { noCompress += "sf2" }
     sourceSets.getByName("main").res.srcDir(buildInfoResources)
     testOptions { unitTests.isIncludeAndroidResources = true }
     buildTypes {

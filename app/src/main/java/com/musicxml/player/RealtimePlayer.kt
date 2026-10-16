@@ -34,11 +34,17 @@ data class RealtimeStatus(
 )
 
 object SoundBank {
+    private const val BANK_BYTES = 32319396L
+
     @Synchronized fun ensure(context: Context): File {
         val bank = File(context.filesDir, "GeneralUser-GS.sf2")
-        if (bank.length() != 32319396L) {
+        if (bank.length() != BANK_BYTES) {
             val temporary = File(context.filesDir, "GeneralUser-GS.tmp")
+            temporary.delete()
             context.assets.open("GeneralUser-GS.sf2").use { input -> temporary.outputStream().use { input.copyTo(it) } }
+            check(temporary.length() == BANK_BYTES) { "採樣音源複製不完整" }
+            // Remove a stale or partial bank first so renameTo can replace it on every filesystem.
+            if (bank.exists() && !bank.delete()) check(false) { "無法更新採樣音源" }
             check(temporary.renameTo(bank)) { "無法安裝採樣音源" }
         }
         return bank
@@ -105,48 +111,84 @@ class NativeRealtimePlayer(context: Context, private val plan: PerformancePlan) 
     private var pendingPosition: Int? = null
     private var selectedSpeed = 1f
     private var selectedMix: Selection? = null
+    private val statusValues = DoubleArray(14)
     private val score = plan.source
     private val routing = AudioRouting(score)
     init {
         val duration = plan.durationMillis
         require(duration <= 30 * 60 * 1000) { "目前支援最長 30 分鐘的樂譜" }
         require(score.parts.size <= 16) { "即時引擎最多支援 16 個聲部（包含節拍器）" }
-        val starts = plan.notes.map { it.startMillis }.toIntArray()
-        val ends = plan.notes.map { it.endMillis }.toIntArray()
-        val controlStarts = plan.controls.map { it.startMillis }.toIntArray()
-        val controlEnds = plan.controls.map { it.endMillis }.toIntArray()
-        val notePrograms = plan.notes.map { if (it.program >= 0) it.program else score.parts[it.part].program }.toIntArray()
-        val noteBanks = plan.notes.map { if (it.bank >= 0) it.bank else score.parts[it.part].bank }.toIntArray()
-        handle = create(SoundBank.ensure(context).absolutePath, starts, ends,
-            plan.notes.map { routing.noteChannel(it.source) }.toIntArray(), plan.notes.map { it.pitch }.toIntArray(), plan.notes.map { it.velocity }.toIntArray(),
-            notePrograms, noteBanks, score.notes.map { if (it.percussion) 1 else 0 }.toIntArray(), routing.basePrograms, routing.baseBanks, controlStarts, controlEnds,
-            plan.controls.map { it.source.part }.toIntArray(), plan.controls.map { it.source.controller }.toIntArray(),
-            plan.controls.map { it.source.from }.toIntArray(), plan.controls.map { it.source.to }.toIntArray(), duration)
+        val count = plan.notes.size
+        val starts = IntArray(count)
+        val ends = IntArray(count)
+        val channels = IntArray(count)
+        val pitches = IntArray(count)
+        val velocities = IntArray(count)
+        val notePrograms = IntArray(count)
+        val noteBanks = IntArray(count)
+        val drums = IntArray(count)
+        for (index in 0 until count) {
+            val note = plan.notes[index]
+            starts[index] = note.startMillis
+            ends[index] = note.endMillis
+            channels[index] = routing.noteChannel(note.source)
+            pitches[index] = note.pitch
+            velocities[index] = note.velocity
+            notePrograms[index] = if (note.program >= 0) note.program else score.parts[note.part].program
+            noteBanks[index] = if (note.bank >= 0) note.bank else score.parts[note.part].bank
+            drums[index] = if (note.percussion) 1 else 0
+        }
+        val controlCount = plan.controls.size
+        val controlStarts = IntArray(controlCount)
+        val controlEnds = IntArray(controlCount)
+        val controlParts = IntArray(controlCount)
+        val controllers = IntArray(controlCount)
+        val controlFrom = IntArray(controlCount)
+        val controlTo = IntArray(controlCount)
+        for (index in 0 until controlCount) {
+            val control = plan.controls[index]
+            controlStarts[index] = control.startMillis
+            controlEnds[index] = control.endMillis
+            controlParts[index] = control.source.part
+            controllers[index] = control.source.controller
+            controlFrom[index] = control.source.from
+            controlTo[index] = control.source.to
+        }
+        handle = create(SoundBank.ensure(context).absolutePath, starts, ends, channels, pitches, velocities,
+            notePrograms, noteBanks, drums, routing.basePrograms, routing.baseBanks, controlStarts, controlEnds,
+            controlParts, controllers, controlFrom, controlTo, duration)
         check(handle != 0L) { "無法建立即時採樣引擎" }
     }
-    override val currentPosition get() = synchronized(this) {
-        if (handle == 0L) 0 else plan.canonicalMillisAt(pendingPosition ?: state(handle, 0).toInt())
+    /** Reads every native property in a single JNI call; callers must hold the monitor. */
+    private fun snapshotValues(): DoubleArray? {
+        if (handle == 0L) return null
+        stateAll(handle, statusValues)
+        return statusValues
     }
-    override val isPlaying get() = synchronized(this) { handle != 0L && state(handle, 1) != 0.0 }
-    override val isFinished get() = synchronized(this) { handle != 0L && pendingPosition == null && state(handle, 2) != 0.0 }
+    override val currentPosition get() = synchronized(this) {
+        val values = snapshotValues() ?: return@synchronized 0
+        plan.canonicalMillisAt(pendingPosition ?: values[0].toInt())
+    }
+    override val isPlaying get() = synchronized(this) { snapshotValues()?.let { it[1] != 0.0 } ?: false }
+    override val isFinished get() = synchronized(this) { snapshotValues()?.let { pendingPosition == null && it[2] != 0.0 } ?: false }
     override val errorMessage get() = synchronized(this) {
-        val error = if (handle == 0L) 0 else state(handle, 3).toInt()
+        val error = snapshotValues()?.get(3)?.toInt() ?: 0
         if (error == 0) null else "即時音訊裝置錯誤（$error）"
     }
     override val status get() = synchronized(this) {
-        if (handle == 0L) return@synchronized RealtimeStatus(RealtimePhase.CLOSED, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        val values = snapshotValues() ?: return@synchronized RealtimeStatus(RealtimePhase.CLOSED, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         val phases = RealtimePhase.entries
-        val nativePhase = phases.getOrElse(state(handle, 4).toInt()) { RealtimePhase.ERROR }
+        val nativePhase = phases.getOrElse(values[4].toInt()) { RealtimePhase.ERROR }
         // The completion query waits for queued audio to be presented and publishes FINISHED.
         val phase = when {
             pendingPosition != null && nativePhase == RealtimePhase.FINISHED -> RealtimePhase.PAUSED
-            pendingPosition == null && state(handle, 2) != 0.0 -> RealtimePhase.FINISHED
+            pendingPosition == null && values[2] != 0.0 -> RealtimePhase.FINISHED
             else -> nativePhase
         }
-        RealtimeStatus(phase, plan.canonicalMillisAt(pendingPosition ?: state(handle, 0).toInt()),
-            state(handle, 3).toInt(), state(handle, 5).toInt(), state(handle, 6).toInt(), state(handle, 7).toInt(),
-            state(handle, 8).toInt(), state(handle, 9).toLong(), state(handle, 10).toLong(), state(handle, 11).toInt(),
-            state(handle, 12).toInt(), state(handle, 13).toInt())
+        RealtimeStatus(phase, plan.canonicalMillisAt(pendingPosition ?: values[0].toInt()),
+            values[3].toInt(), values[5].toInt(), values[6].toInt(), values[7].toInt(),
+            values[8].toInt(), values[9].toLong(), values[10].toLong(), values[11].toInt(),
+            values[12].toInt(), values[13].toInt())
     }
     @Synchronized private fun send(operation: Int, first: Double = 0.0, second: Double = 0.0) {
         if (handle != 0L) control(handle, operation, first, second)
@@ -163,7 +205,8 @@ class NativeRealtimePlayer(context: Context, private val plan: PerformancePlan) 
     @Synchronized override fun seekMillis(position: Int) {
         if (handle == 0L) return
         val renderedPosition = plan.performanceMillisAt(position)
-        when (state(handle, 4).toInt()) {
+        val nativePhase = snapshotValues()?.get(4)?.toInt() ?: return
+        when (nativePhase) {
             RealtimePhase.PAUSED.ordinal, RealtimePhase.FINISHED.ordinal, RealtimePhase.ROUTE_UNAVAILABLE.ordinal -> pendingPosition = renderedPosition
             else -> send(2, renderedPosition.toDouble())
         }
@@ -187,6 +230,6 @@ class NativeRealtimePlayer(context: Context, private val plan: PerformancePlan) 
                                 controllers: IntArray, controlFrom: IntArray, controlTo: IntArray, duration: Int): Long
     private external fun control(handle: Long, operation: Int, first: Double, second: Double)
     private external fun configure(handle: Long, programs: IntArray, volumes: IntArray, enabled: BooleanArray, overrides: BooleanArray)
-    private external fun state(handle: Long, property: Int): Double
+    private external fun stateAll(handle: Long, out: DoubleArray)
     private external fun destroy(handle: Long)
 }

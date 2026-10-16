@@ -420,6 +420,15 @@ Java_com_musicxml_player_NativeRealtimePlayer_state(JNIEnv* env, jobject, jlong 
     try { return output(handle)->state(property); } catch (const std::exception& e) { failure(env, e.what()); return 0; }
 }
 extern "C" JNIEXPORT void JNICALL
+Java_com_musicxml_player_NativeRealtimePlayer_stateAll(JNIEnv* env, jobject, jlong handle, jdoubleArray out) {
+    try {
+        auto& engine = output(handle);
+        jdouble values[14] = {};
+        for (int property = 0; property < 14; ++property) values[property] = engine->state(property);
+        env->SetDoubleArrayRegion(out, 0, 14, values);
+    } catch (const std::exception& e) { failure(env, e.what()); }
+}
+extern "C" JNIEXPORT void JNICALL
 Java_com_musicxml_player_NativeRealtimePlayer_destroy(JNIEnv*, jobject, jlong handle) {
     if (!handle) return; auto holder = reinterpret_cast<Holder*>(handle); (*holder)->shutdown(); delete holder;
 }

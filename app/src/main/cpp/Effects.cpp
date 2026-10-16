@@ -117,7 +117,11 @@ public:
 class Chorus {
     std::vector<float> left_, right_;
     int size_ = 0, index_ = 0, rate_ = 48000;
-    float phase_ = 0.0f;
+    // LFO tracked as a rotating unit vector (sin/cos) so the per-sample modulation needs no
+    // transcendental calls; it is renormalized periodically to avoid amplitude drift.
+    float phaseSin_ = 0.0f, phaseCos_ = 1.0f;
+    float stepSin_ = 0.0f, stepCos_ = 1.0f;
+    int normalizeCountdown_ = 0;
     float read(const std::vector<float>& buffer, float delay) const {
         float position = static_cast<float>(index_) - delay;
         while (position < 0.0f) position += static_cast<float>(size_);
@@ -135,24 +139,35 @@ public:
     void setSampleRate(int rate) {
         rate_ = std::max(1, rate);
         size_ = std::min(static_cast<int>(0.05f * rate_) + 4, static_cast<int>(left_.size()));
+        const float omega = 2.0f * kPi * kChorusRateHz / rate_;
+        stepSin_ = std::sin(omega);
+        stepCos_ = std::cos(omega);
         clear();
-        phase_ = 0.0f;
     }
     void clear() {
         std::fill(left_.begin(), left_.end(), 0.0f);
         std::fill(right_.begin(), right_.end(), 0.0f);
         index_ = 0;
+        phaseSin_ = 0.0f;
+        phaseCos_ = 1.0f;
+        normalizeCountdown_ = 4096;
     }
     void process(float inputLeft, float inputRight, float& outputLeft, float& outputRight) {
         const float base = kChorusBaseMs * 0.001f * rate_;
         const float depth = kChorusDepthMs * 0.001f * rate_;
-        outputLeft = read(left_, base + std::sin(2.0f * kPi * phase_) * depth);
-        outputRight = read(right_, base + std::sin(2.0f * kPi * (phase_ + 0.5f)) * depth);
+        outputLeft = read(left_, base + phaseSin_ * depth);
+        outputRight = read(right_, base - phaseSin_ * depth); // sin(theta + pi) = -sin(theta)
         left_[index_] = inputLeft;
         right_[index_] = inputRight;
         if (++index_ >= size_) index_ = 0;
-        phase_ += kChorusRateHz / rate_;
-        if (phase_ >= 1.0f) phase_ -= 1.0f;
+        const float nextSin = phaseSin_ * stepCos_ + phaseCos_ * stepSin_;
+        phaseCos_ = phaseCos_ * stepCos_ - phaseSin_ * stepSin_;
+        phaseSin_ = nextSin;
+        if (--normalizeCountdown_ <= 0) {
+            normalizeCountdown_ = 4096;
+            const float magnitude = std::sqrt(phaseSin_ * phaseSin_ + phaseCos_ * phaseCos_);
+            if (magnitude > 0.0f) { phaseSin_ /= magnitude; phaseCos_ /= magnitude; }
+        }
     }
 };
 

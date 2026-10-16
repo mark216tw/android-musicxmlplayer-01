@@ -65,6 +65,8 @@ class MainActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private val exportWorker = Executors.newSingleThreadExecutor()
     private val handler = Handler(Looper.getMainLooper())
+    private var displayTick = 0
+    private var lastDisplayPlaying: Boolean? = null
     private var playback: PlaybackService? = null
     private val service get() = checkNotNull(playback) { "播放器尚未連線" }
     private val score get() = playback?.score
@@ -180,10 +182,18 @@ class MainActivity : Activity() {
                 status?.setTextIfChanged(phaseText)
                 if (page == "player") {
                     val enabled = p.enabled()
-                    val snapshot = PerformanceDisplay.snapshot(s, tick, enabled,
-                        p.transportPhase == TransportPhase.PLAYING, p.programs, p.programOverrides)
-                    if (!scrubbing) updateRollDisplay(snapshot, enabled)
-                    refreshPartControls(enabled, snapshot.activeParts)
+                    val playing = p.transportPhase == TransportPhase.PLAYING
+                    if (!scrubbing) roll?.updateTick(tick)
+                    // The note-roll labels and performance context are expensive interval-tree
+                    // queries; recompute them a few times per second (and immediately on any
+                    // play/pause transition) while the playhead above follows every tick.
+                    if (playing != lastDisplayPlaying || displayTick++ % 4 == 0) {
+                        lastDisplayPlaying = playing
+                        val snapshot = PerformanceDisplay.snapshot(s, tick, enabled, playing,
+                            p.programs, p.programOverrides)
+                        if (!scrubbing) updateRollDisplay(snapshot, enabled)
+                        refreshPartControls(enabled, snapshot.activeParts)
+                    }
                 }
                 updateTransportButton(); updateMiniTransportButton()
                 val miniState = when (p.transportPhase) {
@@ -198,7 +208,7 @@ class MainActivity : Activity() {
                 }
                 miniTitle?.setTextIfChanged("$miniState：${entry?.name}\n${time(ms)} / ${time(s.millisAt(s.endTick))}")
                 if (requestedPage == "player" && page != "player") { showPlayer(); requestedPage = "player" }
-                else if (page != "player" && miniTrackId != entry?.id) {
+                else if (page != "player" && page != "settings" && miniTrackId != entry?.id) {
                     redraw(); handler.postDelayed(this, 50); return
                 }
                 if (resumed && page == "player" && p.transportPhase == TransportPhase.PLAYING) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -339,23 +349,23 @@ class MainActivity : Activity() {
         val panel = row().apply {
             tag = "miniPlayer"
             background = rounded(colors.surface, 18, colors.line)
-            setPadding(dp(12), dp(8), dp(8), dp(8))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
             isClickable = true
             setOnClickListener { playerReturnPage = page; showPlayer() }
             val initial = current.name.trim().firstOrNull()?.uppercase() ?: "M"
             addView(text(initial, 22f).apply {
                 gravity = Gravity.CENTER; typeface = Typeface.DEFAULT_BOLD
-                background = rounded(PartColors.color(kotlin.math.abs(current.id.hashCode()), colors.dark), 14)
-            }, LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginEnd = dp(10) })
+                background = rounded(PartColors.color(kotlin.math.abs(current.id.hashCode()), colors.dark), 16)
+            }, LinearLayout.LayoutParams(dp(56), dp(56)).apply { marginEnd = dp(10) })
             miniTitle = text(current.name, 14f).apply {
                 maxLines = 2; setPadding(0, 0, dp(8), 0)
             }.also { addView(it, LinearLayout.LayoutParams(0, -2, 1f)) }
             miniButton = iconButton(R.drawable.ic_play, transportLabel()) { userTogglePlayback() }.apply {
                 tag = "miniPlayPauseButton"
-                background = rounded(colors.accent, 24)
+                background = rounded(colors.accent, 28)
                 imageTintList = ColorStateList.valueOf(colors.onAccent)
-            }.also { addView(it, LinearLayout.LayoutParams(dp(48), dp(48))) }
-            addView(iconButton(android.R.drawable.ic_media_next, "下一首") { service.skipNext() }, LinearLayout.LayoutParams(dp(48), dp(48)))
+            }.also { addView(it, LinearLayout.LayoutParams(dp(56), dp(56))) }
+            addView(iconButton(R.drawable.ic_skip_next, "下一首") { service.skipNext() }, LinearLayout.LayoutParams(dp(56), dp(56)))
         }
         stickyHost.addView(panel)
         stickyHost.visibility = View.VISIBLE
@@ -470,7 +480,6 @@ class MainActivity : Activity() {
             addView(slider, LinearLayout.LayoutParams(0, dp(44), 1f))
         }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(18); bottomMargin = dp(12) })
         root.addView(appInfoFooter())
-        installMiniPlayer()
     }
     private fun error(t: Throwable) { AlertDialog.Builder(ui).setTitle("無法完成").setMessage(t.message ?: "請重新嘗試").setPositiveButton("知道了", null).show() }
     private fun async(action: () -> Unit) {
@@ -524,6 +533,7 @@ class MainActivity : Activity() {
     private fun importDemo() { async {
         val bytes = assets.open("demo.musicxml").use { it.readBytes() }
         val parsed = MusicXml.parse(bytes)
+        parsed.timeline // build the interval indexes off the main thread
         runOnUiThread { if (alive) imported(bytes, parsed) }
     } }
 
@@ -818,6 +828,7 @@ class MainActivity : Activity() {
                 }; output.toByteArray()
             } ?: error("無法開啟檔案")
             val parsed = MusicXml.parse(bytes)
+            parsed.timeline // build the interval indexes off the main thread
             runOnUiThread { if (alive) try { imported(bytes, parsed) } catch (t: Exception) { error(t) } }
         }
     }

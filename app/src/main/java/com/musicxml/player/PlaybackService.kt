@@ -102,7 +102,8 @@ class PlaybackService : Service() {
     @Volatile private var alive = true
     private var savedPosition = 0
     private var lastSessionSavedAt = 0L
-    private var notificationTicks = 0
+    private var lastNotificationUpdateAt = 0L
+    private var lastActivityAt = 0L
     private var routeDeviceId = Int.MIN_VALUE
     private var routeLabel = "音訊輸出：系統選擇"
     private var routeResolvedAt = 0L
@@ -187,9 +188,20 @@ class PlaybackService : Service() {
     }
     private val transport = object : Runnable {
         override fun run() {
+            val beforePhase = transportPhase
+            val beforePlaying = isPlaying
             pollTransport()
-            if (++notificationTicks % 20 == 0 && (isPlaying || transportPhase == TransportPhase.RECONNECTING)) updateSession()
-            handler.postDelayed(this, 50)
+            val now = SystemClock.elapsedRealtime()
+            // The media session/notification only needs a time-based refresh.
+            if ((isPlaying || transportPhase == TransportPhase.RECONNECTING) && now - lastNotificationUpdateAt >= 1000) {
+                lastNotificationUpdateAt = now
+                updateSession()
+            }
+            // Poll quickly while active or just after a transition; back off after sustained
+            // inactivity (e.g. paused and unattended) to cut idle wakeups.
+            val active = wantsPlayback && transportPhase in ACTIVE_PHASES
+            if (active || transportPhase != beforePhase || isPlaying != beforePlaying) lastActivityAt = now
+            handler.postDelayed(this, if (now - lastActivityAt >= 3000) 250 else 50)
         }
     }
     override fun onCreate() {
@@ -210,6 +222,7 @@ class PlaybackService : Service() {
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(noisyReceiver, filter, RECEIVER_NOT_EXPORTED)
         else registerReceiver(noisyReceiver, filter)
         audio.registerAudioDeviceCallback(audioDevices, handler)
+        lastActivityAt = SystemClock.elapsedRealtime()
         handler.post(transport)
         val library = Library(this)
         val persistence = PlaybackPersistence(this)
@@ -294,6 +307,7 @@ class PlaybackService : Service() {
         renderer.execute {
             try {
                 val parsed = MusicXml.parse(library.file(target).readBytes())
+                parsed.timeline // build the interval indexes off the main thread before first draw
                 handler.post {
                     if (alive && currentGeneration == generation) {
                         val shouldAutoplay = wantsPlayback

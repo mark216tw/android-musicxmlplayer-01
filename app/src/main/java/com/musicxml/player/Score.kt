@@ -157,8 +157,9 @@ object MusicXml {
     private fun document(bytes: ByteArray): Element {
         require(bytes.size <= MAX_BYTES) { "樂譜超過 20 MB" }
         // Android's JAXP parser does not implement desktop Xerces feature switches.
-        // Reject DTDs before parsing and deny every external entity at the resolver.
-        require(!Regex("<!DOCTYPE", RegexOption.IGNORE_CASE).containsMatchIn(decodeXml(bytes))) { "不支援內嵌 DTD 或 XML 實體宣告" }
+        // Reject any DTD before parsing by scanning the raw bytes (no full decode) and
+        // deny every external entity at the resolver.
+        require(!containsDoctype(bytes, detectEncoding(bytes))) { "不支援內嵌 DTD 或 XML 實體宣告" }
         val factory = DocumentBuilderFactory.newInstance()
         factory.isExpandEntityReferences = false
         val builder = factory.newDocumentBuilder()
@@ -204,7 +205,7 @@ object MusicXml {
         }?.value) ?: error("MXL 找不到主樂譜")
     }
 
-    private fun decodeXml(raw: ByteArray): String {
+    private fun detectEncoding(raw: ByteArray): java.nio.charset.Charset {
         val encoding = when {
             raw.size >= 2 && raw[0] == 0xff.toByte() && raw[1] == 0xfe.toByte() -> "UTF-16"
             raw.size >= 2 && raw[0] == 0xfe.toByte() && raw[1] == 0xff.toByte() -> "UTF-16"
@@ -213,7 +214,36 @@ object MusicXml {
             else -> Regex("^\\s*<\\?xml\\b[^>]*encoding\\s*=\\s*['\"]([^'\"]+)['\"]", RegexOption.IGNORE_CASE)
                 .find(raw.take(256).toByteArray().toString(Charsets.ISO_8859_1))?.groupValues?.get(1) ?: "UTF-8"
         }
-        return raw.toString(java.nio.charset.Charset.forName(encoding)).removePrefix("\uFEFF")
+        return java.nio.charset.Charset.forName(encoding)
+    }
+    private fun decodeXml(raw: ByteArray): String = raw.toString(detectEncoding(raw)).removePrefix("\uFEFF")
+
+    // Case-insensitive byte comparison; folding bit 0x20 also matches the zero padding of UTF-16.
+    private fun equalsIgnoreCase(bytes: ByteArray, offset: Int, token: ByteArray): Boolean {
+        for (index in token.indices) {
+            val left = bytes[offset + index].toInt() and 0xFF
+            val right = token[index].toInt() and 0xFF
+            if ((left or 0x20) != (right or 0x20)) return false
+        }
+        return true
+    }
+    private fun indexOfIgnoreCase(bytes: ByteArray, token: ByteArray): Int {
+        if (token.isEmpty() || bytes.size < token.size) return -1
+        for (start in 0..bytes.size - token.size) if (equalsIgnoreCase(bytes, start, token)) return start
+        return -1
+    }
+    private fun containsDoctype(bytes: ByteArray, charset: java.nio.charset.Charset): Boolean =
+        indexOfIgnoreCase(bytes, "<!doctype".toByteArray(charset)) >= 0
+
+    /** Removes an external DOCTYPE declaration only; an internal subset is left for [document] to reject. */
+    private fun stripExternalDoctype(bytes: ByteArray): ByteArray {
+        val start = indexOfIgnoreCase(bytes, "<!DOCTYPE".toByteArray())
+        if (start < 0) return bytes
+        var end = start + "<!DOCTYPE".length
+        while (end < bytes.size && bytes[end] != '>'.code.toByte() && bytes[end] != '['.code.toByte()) ++end
+        if (end < bytes.size && bytes[end] == '>'.code.toByte())
+            return bytes.copyOfRange(0, start) + bytes.copyOfRange(end + 1, bytes.size)
+        return bytes
     }
     fun normalizedXml(bytes: ByteArray): ByteArray {
         require(bytes.size <= MAX_BYTES) { "樂譜超過 20 MB" }
@@ -688,11 +718,11 @@ object MusicXml {
     }
 
     fun parse(bytes: ByteArray): Score {
-        // MusicXML exports often contain an external DOCTYPE. Strip declarations only;
-        // the XML parser still rejects internal entities and never loads external resources.
-        val xml = normalizedXml(bytes).toString(Charsets.UTF_8)
-        val clean = xml.replace(Regex("<!DOCTYPE[^\\[>]*>", RegexOption.IGNORE_CASE), "")
-        val root = document(clean.toByteArray())
+        // MusicXML exports often contain an external DOCTYPE. Strip declarations only, on the
+        // UTF-8 bytes returned by normalizedXml; the XML parser still rejects internal entities
+        // and never loads external resources.
+        val clean = stripExternalDoctype(normalizedXml(bytes))
+        val root = document(clean)
         require(root.tagName == "score-partwise") { "目前支援 score-partwise MusicXML，請以此格式重新匯出" }
         val warnings = linkedSetOf<String>()
         val definitions = root.child("part-list")?.children("score-part").orEmpty()
